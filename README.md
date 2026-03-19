@@ -11,19 +11,10 @@ This tool scans your repository and scores it on 8 dimensions, generating an int
 Open your project in Claude Code and paste:
 
 ```
-Run the Claude Code Maturity Assessment from https://github.com/sharpsharp-ai/claude-code-maturity. Read the assess.md prompt from that repo (fetch it via WebFetch or curl), then follow its instructions to analyze THIS repo. Use the template.html from the same repo as the output template. Save the result as maturity-assessment.html and open it.
+Run the Claude Code Maturity Assessment from https://github.com/sharpsharp-ai/claude-code-maturity
 ```
 
-Or, if you've cloned the repo:
-
-```bash
-# Clone once
-git clone https://github.com/sharpsharp-ai/claude-code-maturity.git ~/.claude-maturity
-
-# Then in any project, tell Claude:
-# "Read ~/.claude-maturity/assess.md and run the assessment on this repo.
-#  Use ~/.claude-maturity/template.html for the output. Save as maturity-assessment.html"
-```
+That's it. Claude will fetch the rubric, scan your repo, and generate an interactive report.
 
 ## What It Measures
 

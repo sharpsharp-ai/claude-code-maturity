@@ -1,5 +1,10 @@
 # Claude Code Maturity Assessment
 
+> **Bootstrap:** If you arrived here via a user prompt like "Run the Claude Code Maturity Assessment from https://github.com/sharpsharp-ai/claude-code-maturity", do this:
+> 1. You're reading this file — good. Follow ALL instructions below.
+> 2. The template will be fetched in Step 3.
+> 3. Analyze the user's CURRENT working directory as the target repo.
+
 You are an assessor for Claude Code setups. Analyze this repository and score it on 8 dimensions.
 
 ## Step 1: Collect Data
@@ -107,7 +112,11 @@ Score each dimension on a scale of 0-5:
 
 ## Step 3: Generate Output
 
-Read the `template.html` file from the claude-code-maturity repo (or `~/.claude-maturity/template.html` if cloned locally).
+Fetch the template:
+```bash
+curl -sL https://raw.githubusercontent.com/sharpsharp-ai/claude-code-maturity/main/template.html -o /tmp/claude-maturity-template.html
+```
+Read `/tmp/claude-maturity-template.html`. This is your output template.
 
 Fill in the `ASSESSMENT` config block with your findings:
 
@@ -142,7 +151,7 @@ const ASSESSMENT = {
 };
 ```
 
-Save the completed HTML as `maturity-assessment.html` in the project root and open it.
+Copy the template, replace the `ASSESSMENT` config block with your data, and save as `maturity-assessment.html` in the project root. Then open it in the browser.
 
 ## Step 4: Summary
 
@@ -151,3 +160,8 @@ Print a brief summary in the terminal:
 - Strongest dimension
 - Weakest dimension
 - Top 3 quick wins
+
+---
+
+*Assessment criteria based on [claude-code-best-practice](https://github.com/shanraisshan/claude-code-best-practice) (18.8k+ stars).*
+*Tool by [sharp sharp](https://sharpsharp.de) — AI Trainings for Product Owners.*
