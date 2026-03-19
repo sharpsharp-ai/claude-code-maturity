@@ -93,7 +93,17 @@
     margin: 0 2px;
   }
   .footer { text-align: center; color: #555; font-size: 0.75rem; margin-top: 40px; padding-top: 20px; border-top: 1px solid #2a2a4a; }
+  .download-row { display: flex; justify-content: center; gap: 12px; margin: 20px 0 10px; }
+  .download-btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: #2563eb; color: #fff; border: none;
+    padding: 8px 20px; border-radius: 6px; font-size: 0.85rem;
+    font-weight: 600; cursor: pointer; transition: background 0.2s;
+  }
+  .download-btn:hover { background: #1d4ed8; }
+  .download-btn svg { width: 16px; height: 16px; fill: currentColor; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -109,6 +119,16 @@
   <div class="chart-container"><svg id="radar" viewBox="0 0 500 500" width="460" height="460"></svg></div>
   <table><thead><tr><th>Dimension</th><th>Score</th><th>Begruendung</th></tr></thead><tbody id="table-body"></tbody></table>
   <div class="improvements"><h2>Top 3 Verbesserungen</h2><ol id="improvements-list"></ol></div>
+  <div class="download-row">
+    <button class="download-btn" id="btn-png" onclick="downloadReport('png')">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Download PNG
+    </button>
+    <button class="download-btn" id="btn-pdf" onclick="window.print()" style="background:#7c3aed">
+      <svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+      Print / PDF
+    </button>
+  </div>
   <div class="footer" id="footer-text"></div>
 </div>
 
@@ -308,6 +328,38 @@ ${escapedPrompt}</div>`;
   li.innerHTML = html;
   ol.appendChild(li);
 });
+
+// Download function
+function downloadReport(format) {
+  const btn = document.getElementById('btn-' + format);
+  const origText = btn.innerHTML;
+  btn.innerHTML = '<svg viewBox="0 0 24 24" style="width:16px;height:16px;fill:currentColor;animation:spin 1s linear infinite"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z"/></svg> Rendering...';
+  const style = document.createElement('style');
+  style.textContent = '@keyframes spin{to{transform:rotate(360deg)}}';
+  document.head.appendChild(style);
+  const dlRow = document.querySelector('.download-row');
+  dlRow.style.display = 'none';
+  setTimeout(() => {
+    html2canvas(document.querySelector('.container'), {
+      backgroundColor: '#1a1a2e',
+      scale: 2,
+      useCORS: true
+    }).then(canvas => {
+      dlRow.style.display = 'flex';
+      btn.innerHTML = origText;
+      style.remove();
+      const link = document.createElement('a');
+      const name = (ASSESSMENT.project || 'assessment').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      link.download = `claude-maturity-${name}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }).catch(() => {
+      dlRow.style.display = 'flex';
+      btn.innerHTML = origText;
+      style.remove();
+    });
+  }, 100);
+}
 </script>
 </body>
 </html>
