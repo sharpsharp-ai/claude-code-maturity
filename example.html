@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Maturity Assessment</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container { max-width: 800px; width: 100%; }
+  h1 { font-size: 1.8rem; color: #fff; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 8px; }
+  .score-hero { text-align: center; margin: 20px 0 30px; }
+  .score-number { font-size: 4rem; font-weight: 800; color: #2563eb; line-height: 1; }
+  .score-label { font-size: 1rem; color: #888; margin-top: 4px; }
+  .score-bar { width: 80%; max-width: 400px; height: 8px; background: #2a2a4a; border-radius: 4px; margin: 12px auto 0; overflow: hidden; }
+  .score-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 4px; transition: width 0.8s ease; }
+  .chart-container { display: flex; justify-content: center; margin: 30px 0; }
+  .badge-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .badge { padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+  th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #2563eb; color: #2563eb; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 10px 12px; border-bottom: 1px solid #2a2a4a; font-size: 0.9rem; vertical-align: top; }
+  td.score-cell { text-align: center; font-weight: 700; font-size: 1.1rem; min-width: 50px; }
+  .improvements { background: #16213e; border-left: 4px solid #2563eb; padding: 20px 24px; border-radius: 0 8px 8px 0; margin: 30px 0; }
+  .improvements h2 { color: #2563eb; font-size: 1.1rem; margin-bottom: 16px; }
+  .improvements ol { padding-left: 20px; }
+  .improvements li { margin-bottom: 12px; line-height: 1.5; }
+  .improvements strong { color: #fff; }
+  .prompt-block {
+    background: #0d1117;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #c9d1d9;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+  }
+  .prompt-label {
+    display: inline-block;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 0.7rem;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #21262d;
+    border: 1px solid #444;
+    color: #888;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover { color: #fff; border-color: #2563eb; }
+  .lift-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+  }
+  .lift-dim { color: #888; }
+  .lift-score {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .lift-arrow {
+    color: #2563eb;
+    font-size: 1.1rem;
+    margin: 0 2px;
+  }
+  .footer { text-align: center; color: #555; font-size: 0.75rem; margin-top: 40px; padding-top: 20px; border-top: 1px solid #2a2a4a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 id="title">Claude Code Maturity Assessment</h1>
+  <p class="subtitle" id="subtitle"></p>
+  <p class="subtitle" id="source-line"></p>
+  <div class="score-hero">
+    <div class="score-number" id="score-pct"></div>
+    <div class="score-label" id="score-detail"></div>
+    <div class="score-bar"><div class="score-fill" id="score-bar-fill"></div></div>
+  </div>
+  <div class="badge-row" id="badges"></div>
+  <div class="chart-container"><svg id="radar" viewBox="0 0 500 500" width="460" height="460"></svg></div>
+  <table><thead><tr><th>Dimension</th><th>Score</th><th>Begruendung</th></tr></thead><tbody id="table-body"></tbody></table>
+  <div class="improvements"><h2>Top 3 Verbesserungen</h2><ol id="improvements-list"></ol></div>
+  <div class="footer" id="footer-text"></div>
+</div>
+
+<script>
+// ============================================================
+// ASSESSMENT DATA — nur diesen Block anpassen
+// ============================================================
+const ASSESSMENT = {
+  title: "Claude Code Maturity Assessment",
+  project: "sharp sharp AI",
+  date: "19. Maerz 2026",
+  footer: "sharpsharp.de",
+  source: { name: "claude-code-best-practice", stars: "18.8k", url: "https://github.com/shanraisshan/claude-code-best-practice" },
+
+  dimensions: [
+    { name: "Kontextwissen",    score: 5, reason: "16 hierarchische CLAUDE.md-Dateien mit definierten Rollen, Startup-Ritualen und aktueller Lage — Median ~100 Zeilen." },
+    { name: "Gedaechtnis",      score: 5, reason: "Dreischichtiges System: Status-Board (OVERVIEW + 14 Dateien), Historie (13 append-only Logs), Memory (11 Dateien) + /fertig-Command." },
+    { name: "Workflows",        score: 4, reason: "2 Custom Commands, 3 Hooks (CWD-Check, Memory-Load, Notifications), Custom Statusline — aber keine Skills und kein CI." },
+    { name: "Teamwork",         score: 5, reason: "14 Agenten mit Personas, 2 Super-Agenten, Cross-Agent-Notes, moderierte Team-Diskussionen, eigene Chat-App." },
+    { name: "Qualitaet",        score: 2, reason: "Tests nur in 1 von 14 Agenten (WERK1-Raumbuchung: Unit + Contract + BDD). Kein CI, kein systematisches Self-Review." },
+    { name: "Skalierbarkeit",   score: 2, reason: "Nur 1 Git-Worktree, keine parallelen Branches fuer gleichzeitige Agent-Sessions. Konzepte sind skalierbar, Git-Infrastruktur limitiert." },
+    { name: "Onboarding",       score: 5, reason: "Erzwungenes Startup-Ritual, Lazy Loading, Agent-Personas mit Short-Bios, Playbook-Kultur — Agent ist in Sekunden einsatzbereit." },
+    { name: "Feedback",         score: 3, reason: "Memory-System + Feedback-Memories vorhanden, Retro geplant aber noch nicht durchgefuehrt. Kein datengetriebenes Performance-Tracking." },
+  ],
+
+  improvements: [
+    {
+      title: "Git-Worktrees fuer parallele Agent-Sessions.",
+      text: "Aktuell kann nur ein Agent gleichzeitig committen. Mit <code>git worktree add</code> pro Kontext koennten Boris und Rina parallel arbeiten.",
+      lifts: { dimension: "Skalierbarkeit", from: 2, to: 4 },
+      prompt: `Richte Git-Worktrees ein, damit mehrere Agenten parallel arbeiten koennen.
+
+1. Analysiere die aktuelle Repo-Struktur (Ordner, Branches)
+2. Erstelle fuer jeden Agent-Kontext, der haeufig parallel laeuft, einen eigenen Worktree mit eigenem Branch
+3. Schreibe ein Shell-Script 'worktree-setup.sh' das die Worktrees erstellt
+4. Dokumentiere in der Root-CLAUDE.md wie Agenten ihre Worktrees nutzen sollen
+5. Stelle sicher, dass die Worktrees sich nicht gegenseitig beim Committen blockieren`
+    },
+    {
+      title: "Quality-Gate-Hook vor Commits.",
+      text: "Ein PreToolUse-Hook der prueft, ob Status + Historie aktualisiert wurden, bevor ein Commit durchgeht. Fuer Webseite: Lint/Test-Check vor Deploy.",
+      lifts: { dimension: "Qualitaet", from: 2, to: 3 },
+      prompt: `Baue einen PreToolUse-Hook der vor jedem Git-Commit prueft, ob die Dokumentation aktuell ist.
+
+Der Hook soll:
+1. Pruefen ob _status/ und _historie/ Dateien seit dem letzten Commit geaendert wurden (wenn andere Dateien geaendert wurden)
+2. Eine Warnung ausgeben wenn Code-Aenderungen ohne Status/Historie-Update committet werden
+3. Optional: Bei Webseite-Aenderungen pruefen ob deploy.sh noetig waere
+4. Den Hook in ~/.claude/settings.json als PreToolUse registrieren
+5. Ein Shell-Script schreiben das die Logik enthaelt
+6. Dokumentieren wie man den Hook ueberspringt wenn bewusst gewollt`
+    },
+    {
+      title: "Erste Retro durchfuehren.",
+      text: "Format festlegen, Ergebnisse in <code>_retros/</code> speichern, Performance-Metriken (LinkedIn, Clarity, Newsletter) als Datenbasis einbeziehen.",
+      lifts: { dimension: "Feedback", from: 3, to: 4 },
+      prompt: `Bereite eine Team-Retro vor und fuehre sie durch.
+
+1. Erstelle einen Ordner '_retros/' und ein Template 'retro-template.md' mit:
+   - Zeitraum (KW X-Y)
+   - Was lief gut? (pro Agent, mit konkreten Belegen)
+   - Was lief nicht gut? (Blocker, verpasste Deadlines, Qualitaetsprobleme)
+   - Was aendern wir? (konkrete Action Items mit Owner und Deadline)
+   - Metriken: LinkedIn (Impressions, Engagement), Website (Clarity Sessions, Google Traffic), Newsletter (Subscriber, Open Rate)
+2. Sammle die Daten fuer KW 10-16 aus _status/, _historie/ und den Performance-Logs
+3. Fuehre die Retro durch: Fasse zusammen, identifiziere Muster, schlage 3 konkrete Aenderungen vor
+4. Speichere das Ergebnis als '_retros/2026-kw16.md'`
+    },
+  ]
+};
+
+// ============================================================
+// RENDERER — ab hier nichts aendern
+// ============================================================
+const COLORS = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444', 0: '#dc2626' };
+const BADGE_STYLES = { high: 'background:#22c55e22;color:#22c55e;border:1px solid #22c55e44', low: 'background:#f9731622;color:#f97316;border:1px solid #f9731644' };
+const R = 200, CX = 250, CY = 250;
+const d = ASSESSMENT.dimensions;
+const N = d.length;
+const total = d.reduce((s, x) => s + x.score, 0);
+const maxTotal = N * 5;
+const pct = Math.round(total / maxTotal * 100);
+
+// Header
+document.getElementById('title').textContent = ASSESSMENT.title;
+document.getElementById('subtitle').innerHTML = `${ASSESSMENT.project} &mdash; Generiert am ${ASSESSMENT.date}`;
+if (ASSESSMENT.source) {
+  const src = ASSESSMENT.source;
+  document.getElementById('source-line').innerHTML = `Basierend auf <a href="${src.url}" style="color:#2563eb;text-decoration:none" target="_blank">${src.name}</a> <span style="color:#eab308">&starf;</span> ${src.stars} Stars`;
+}
+document.getElementById('score-pct').textContent = pct + '%';
+document.getElementById('score-detail').textContent = `${total} von ${maxTotal} Punkten`;
+document.getElementById('score-bar-fill').style.width = pct + '%';
+document.getElementById('footer-text').innerHTML = `Claude Code Maturity Assessment &mdash; ${ASSESSMENT.project} &mdash; ${ASSESSMENT.footer}`;
+
+// Badges (sorted: highest first, then lowest)
+const sorted = [...d].sort((a, b) => b.score - a.score);
+const badges = document.getElementById('badges');
+sorted.forEach(dim => {
+  if (dim.score >= 4 || dim.score <= 2) {
+    const span = document.createElement('span');
+    span.className = 'badge';
+    span.style.cssText = dim.score >= 4 ? BADGE_STYLES.high : BADGE_STYLES.low;
+    span.textContent = `${dim.name} ${dim.score}/5`;
+    badges.appendChild(span);
+  }
+});
+
+// Radar chart
+function polar(i, score) {
+  const angle = (2 * Math.PI * i / N) - Math.PI / 2;
+  const r = (score / 5) * R;
+  return [CX + r * Math.cos(angle), CY + r * Math.sin(angle)];
+}
+
+function polygonPoints(score) {
+  return Array.from({ length: N }, (_, i) => polar(i, score).join(',')).join(' ');
+}
+
+const svg = document.getElementById('radar');
+let svgContent = '';
+
+// Grid polygons
+for (let level = 1; level <= 5; level++) {
+  const stroke = level === 5 ? '#333366' : '#2a2a4a';
+  const sw = level === 5 ? 1.5 : 1;
+  svgContent += `<polygon points="${polygonPoints(level)}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`;
+}
+
+// Axis lines
+for (let i = 0; i < N; i++) {
+  const [x, y] = polar(i, 5);
+  svgContent += `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#2a2a4a" stroke-width="1"/>`;
+}
+
+// Data polygon
+svgContent += `<polygon points="${d.map((dim, i) => polar(i, dim.score).join(',')).join(' ')}" fill="rgba(37,99,235,0.25)" stroke="#2563eb" stroke-width="2.5"/>`;
+
+// Data points
+d.forEach((dim, i) => {
+  const [x, y] = polar(i, dim.score);
+  svgContent += `<circle cx="${x}" cy="${y}" r="5" fill="${COLORS[dim.score]}"/>`;
+});
+
+// Axis labels
+d.forEach((dim, i) => {
+  const [x, y] = polar(i, 5);
+  const angle = (2 * Math.PI * i / N) - Math.PI / 2;
+  const labelR = R + 28;
+  const scoreR = R + 42;
+  const lx = CX + labelR * Math.cos(angle);
+  const ly = CY + labelR * Math.sin(angle);
+  const sx = CX + scoreR * Math.cos(angle);
+  const sy = CY + scoreR * Math.sin(angle);
+
+  let anchor = 'middle';
+  if (Math.cos(angle) > 0.3) anchor = 'start';
+  else if (Math.cos(angle) < -0.3) anchor = 'end';
+
+  svgContent += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" fill="#fff" font-size="13" font-weight="600" font-family="-apple-system,system-ui,sans-serif">${dim.name}</text>`;
+  svgContent += `<text x="${sx}" y="${sy}" text-anchor="${anchor}" fill="${COLORS[dim.score]}" font-size="11" font-family="-apple-system,system-ui,sans-serif">${dim.score}/5</text>`;
+});
+
+svg.innerHTML = svgContent;
+
+// Table
+const tbody = document.getElementById('table-body');
+d.forEach(dim => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${dim.name}</td><td class="score-cell" style="color:${COLORS[dim.score]}">${dim.score}/5</td><td>${dim.reason}</td>`;
+  tbody.appendChild(tr);
+});
+
+// Lift badge helper
+function liftBadge(score) {
+  const bg = { 5:'#22c55e22', 4:'#84cc1622', 3:'#eab30822', 2:'#f9731622', 1:'#ef444422', 0:'#dc262622' };
+  return `<span class="lift-score" style="background:${bg[score]};color:${COLORS[score]}">${score}/5</span>`;
+}
+
+// Improvements
+const ol = document.getElementById('improvements-list');
+ASSESSMENT.improvements.forEach((imp, idx) => {
+  const li = document.createElement('li');
+  let html = `<strong>${imp.title}</strong> ${imp.text}`;
+  if (imp.lifts) {
+    const l = imp.lifts;
+    html += `<div class="lift-row"><span class="lift-dim">${l.dimension}</span>${liftBadge(l.from)}<span class="lift-arrow">&rarr;</span>${liftBadge(l.to)}</div>`;
+  }
+  if (imp.prompt) {
+    const escapedPrompt = imp.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html += `
+      <div class="prompt-block" id="prompt-${idx}">
+        <span class="prompt-label">Prompt — ins Terminal pasten</span>
+        <button class="copy-btn" onclick="navigator.clipboard.writeText(ASSESSMENT.improvements[${idx}].prompt).then(()=>{this.textContent='Kopiert!';setTimeout(()=>this.textContent='Kopieren',1500)})">Kopieren</button>
+${escapedPrompt}</div>`;
+  }
+  li.innerHTML = html;
+  ol.appendChild(li);
+});
+</script>
+</body>
+</html>

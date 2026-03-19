@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Maturity Assessment</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    display: flex;
+    justify-content: center;
+    padding: 40px 20px;
+  }
+  .container { max-width: 800px; width: 100%; }
+  h1 { font-size: 1.8rem; color: #fff; text-align: center; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #888; font-size: 0.9rem; margin-bottom: 8px; }
+  .score-hero { text-align: center; margin: 20px 0 30px; }
+  .score-number { font-size: 4rem; font-weight: 800; color: #2563eb; line-height: 1; }
+  .score-label { font-size: 1rem; color: #888; margin-top: 4px; }
+  .score-bar { width: 80%; max-width: 400px; height: 8px; background: #2a2a4a; border-radius: 4px; margin: 12px auto 0; overflow: hidden; }
+  .score-fill { height: 100%; background: linear-gradient(90deg, #2563eb, #7c3aed); border-radius: 4px; transition: width 0.8s ease; }
+  .chart-container { display: flex; justify-content: center; margin: 30px 0; }
+  .badge-row { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin: 20px 0; }
+  .badge { padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; margin: 30px 0; }
+  th { text-align: left; padding: 10px 12px; border-bottom: 2px solid #2563eb; color: #2563eb; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  td { padding: 10px 12px; border-bottom: 1px solid #2a2a4a; font-size: 0.9rem; vertical-align: top; }
+  td.score-cell { text-align: center; font-weight: 700; font-size: 1.1rem; min-width: 50px; }
+  .improvements { background: #16213e; border-left: 4px solid #2563eb; padding: 20px 24px; border-radius: 0 8px 8px 0; margin: 30px 0; }
+  .improvements h2 { color: #2563eb; font-size: 1.1rem; margin-bottom: 16px; }
+  .improvements ol { padding-left: 20px; }
+  .improvements li { margin-bottom: 12px; line-height: 1.5; }
+  .improvements strong { color: #fff; }
+  .prompt-block {
+    background: #0d1117;
+    border: 1px solid #333;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-top: 8px;
+    font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    font-size: 0.82rem;
+    line-height: 1.5;
+    color: #c9d1d9;
+    white-space: pre-wrap;
+    word-break: break-word;
+    position: relative;
+  }
+  .prompt-label {
+    display: inline-block;
+    font-family: -apple-system, system-ui, sans-serif;
+    font-size: 0.7rem;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #21262d;
+    border: 1px solid #444;
+    color: #888;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+  }
+  .copy-btn:hover { color: #fff; border-color: #2563eb; }
+  .lift-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    font-size: 0.85rem;
+  }
+  .lift-dim { color: #888; }
+  .lift-score {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .lift-arrow {
+    color: #2563eb;
+    font-size: 1.1rem;
+    margin: 0 2px;
+  }
+  .footer { text-align: center; color: #555; font-size: 0.75rem; margin-top: 40px; padding-top: 20px; border-top: 1px solid #2a2a4a; }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1 id="title">Claude Code Maturity Assessment</h1>
+  <p class="subtitle" id="subtitle"></p>
+  <p class="subtitle" id="source-line"></p>
+  <div class="score-hero">
+    <div class="score-number" id="score-pct"></div>
+    <div class="score-label" id="score-detail"></div>
+    <div class="score-bar"><div class="score-fill" id="score-bar-fill"></div></div>
+  </div>
+  <div class="badge-row" id="badges"></div>
+  <div class="chart-container"><svg id="radar" viewBox="0 0 500 500" width="460" height="460"></svg></div>
+  <table><thead><tr><th>Dimension</th><th>Score</th><th>Reasoning</th></tr></thead><tbody id="table-body"></tbody></table>
+  <div class="improvements"><h2>Top 3 Improvements</h2><ol id="improvements-list"></ol></div>
+  <div class="footer" id="footer-text"></div>
+</div>
+
+<script>
+// ============================================================
+// ASSESSMENT DATA — fill in this block with your results
+// ============================================================
+const ASSESSMENT = {
+  title: "Claude Code Maturity Assessment",
+  project: "YOUR_PROJECT_NAME",
+  date: "DATE",
+  footer: "your-domain.com",
+  source: { name: "claude-code-best-practice", stars: "18.8k", url: "https://github.com/shanraisshan/claude-code-best-practice" },
+
+  // Score each dimension 0-5. See assess.md for rubrics.
+  dimensions: [
+    { name: "Context",       score: 0, reason: "..." },
+    { name: "Memory",        score: 0, reason: "..." },
+    { name: "Workflows",     score: 0, reason: "..." },
+    { name: "Teamwork",      score: 0, reason: "..." },
+    { name: "Quality",       score: 0, reason: "..." },
+    { name: "Scalability",   score: 0, reason: "..." },
+    { name: "Onboarding",    score: 0, reason: "..." },
+    { name: "Feedback",      score: 0, reason: "..." },
+  ],
+
+  // Top 3 improvements with actionable prompts
+  improvements: [
+    {
+      title: "Improvement title.",
+      text: "What to do and why.",
+      lifts: { dimension: "DimensionName", from: 0, to: 0 },
+      prompt: `Paste this prompt into Claude Code to implement this improvement.`
+    },
+  ]
+};
+
+// ============================================================
+// RENDERER — do not modify below this line
+// ============================================================
+const COLORS = { 5: '#22c55e', 4: '#84cc16', 3: '#eab308', 2: '#f97316', 1: '#ef4444', 0: '#dc2626' };
+const BADGE_STYLES = { high: 'background:#22c55e22;color:#22c55e;border:1px solid #22c55e44', low: 'background:#f9731622;color:#f97316;border:1px solid #f9731644' };
+const R = 200, CX = 250, CY = 250;
+const d = ASSESSMENT.dimensions;
+const N = d.length;
+const total = d.reduce((s, x) => s + x.score, 0);
+const maxTotal = N * 5;
+const pct = Math.round(total / maxTotal * 100);
+
+document.getElementById('title').textContent = ASSESSMENT.title;
+document.getElementById('subtitle').innerHTML = `${ASSESSMENT.project} &mdash; Generated ${ASSESSMENT.date}`;
+if (ASSESSMENT.source) {
+  const src = ASSESSMENT.source;
+  document.getElementById('source-line').innerHTML = `Based on <a href="${src.url}" style="color:#2563eb;text-decoration:none" target="_blank">${src.name}</a> <span style="color:#eab308">&starf;</span> ${src.stars} stars`;
+}
+document.getElementById('score-pct').textContent = pct + '%';
+document.getElementById('score-detail').textContent = `${total} of ${maxTotal} points`;
+document.getElementById('score-bar-fill').style.width = pct + '%';
+document.getElementById('footer-text').innerHTML = `Claude Code Maturity Assessment &mdash; ${ASSESSMENT.project} &mdash; ${ASSESSMENT.footer}`;
+
+const sorted = [...d].sort((a, b) => b.score - a.score);
+const badges = document.getElementById('badges');
+sorted.forEach(dim => {
+  if (dim.score >= 4 || dim.score <= 2) {
+    const span = document.createElement('span');
+    span.className = 'badge';
+    span.style.cssText = dim.score >= 4 ? BADGE_STYLES.high : BADGE_STYLES.low;
+    span.textContent = `${dim.name} ${dim.score}/5`;
+    badges.appendChild(span);
+  }
+});
+
+function polar(i, score) {
+  const angle = (2 * Math.PI * i / N) - Math.PI / 2;
+  const r = (score / 5) * R;
+  return [CX + r * Math.cos(angle), CY + r * Math.sin(angle)];
+}
+function polygonPoints(score) {
+  return Array.from({ length: N }, (_, i) => polar(i, score).join(',')).join(' ');
+}
+
+const svg = document.getElementById('radar');
+let svgContent = '';
+for (let level = 1; level <= 5; level++) {
+  const stroke = level === 5 ? '#333366' : '#2a2a4a';
+  const sw = level === 5 ? 1.5 : 1;
+  svgContent += `<polygon points="${polygonPoints(level)}" fill="none" stroke="${stroke}" stroke-width="${sw}"/>`;
+}
+for (let i = 0; i < N; i++) {
+  const [x, y] = polar(i, 5);
+  svgContent += `<line x1="${CX}" y1="${CY}" x2="${x}" y2="${y}" stroke="#2a2a4a" stroke-width="1"/>`;
+}
+svgContent += `<polygon points="${d.map((dim, i) => polar(i, dim.score).join(',')).join(' ')}" fill="rgba(37,99,235,0.25)" stroke="#2563eb" stroke-width="2.5"/>`;
+d.forEach((dim, i) => {
+  const [x, y] = polar(i, dim.score);
+  svgContent += `<circle cx="${x}" cy="${y}" r="5" fill="${COLORS[dim.score]}"/>`;
+});
+d.forEach((dim, i) => {
+  const angle = (2 * Math.PI * i / N) - Math.PI / 2;
+  const lx = CX + (R + 28) * Math.cos(angle);
+  const ly = CY + (R + 28) * Math.sin(angle);
+  const sx = CX + (R + 42) * Math.cos(angle);
+  const sy = CY + (R + 42) * Math.sin(angle);
+  let anchor = 'middle';
+  if (Math.cos(angle) > 0.3) anchor = 'start';
+  else if (Math.cos(angle) < -0.3) anchor = 'end';
+  svgContent += `<text x="${lx}" y="${ly}" text-anchor="${anchor}" fill="#fff" font-size="13" font-weight="600" font-family="-apple-system,system-ui,sans-serif">${dim.name}</text>`;
+  svgContent += `<text x="${sx}" y="${sy}" text-anchor="${anchor}" fill="${COLORS[dim.score]}" font-size="11" font-family="-apple-system,system-ui,sans-serif">${dim.score}/5</text>`;
+});
+svg.innerHTML = svgContent;
+
+const tbody = document.getElementById('table-body');
+d.forEach(dim => {
+  const tr = document.createElement('tr');
+  tr.innerHTML = `<td>${dim.name}</td><td class="score-cell" style="color:${COLORS[dim.score]}">${dim.score}/5</td><td>${dim.reason}</td>`;
+  tbody.appendChild(tr);
+});
+
+function liftBadge(score) {
+  const bg = { 5:'#22c55e22', 4:'#84cc1622', 3:'#eab30822', 2:'#f9731622', 1:'#ef444422', 0:'#dc262622' };
+  return `<span class="lift-score" style="background:${bg[score]};color:${COLORS[score]}">${score}/5</span>`;
+}
+
+const ol = document.getElementById('improvements-list');
+ASSESSMENT.improvements.forEach((imp, idx) => {
+  const li = document.createElement('li');
+  let html = `<strong>${imp.title}</strong> ${imp.text}`;
+  if (imp.lifts) {
+    const l = imp.lifts;
+    html += `<div class="lift-row"><span class="lift-dim">${l.dimension}</span>${liftBadge(l.from)}<span class="lift-arrow">&rarr;</span>${liftBadge(l.to)}</div>`;
+  }
+  if (imp.prompt) {
+    const escapedPrompt = imp.prompt.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    html += `
+      <div class="prompt-block" id="prompt-${idx}">
+        <span class="prompt-label">Prompt — paste into Claude Code</span>
+        <button class="copy-btn" onclick="navigator.clipboard.writeText(ASSESSMENT.improvements[${idx}].prompt).then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500)})">Copy</button>
+${escapedPrompt}</div>`;
+  }
+  li.innerHTML = html;
+  ol.appendChild(li);
+});
+</script>
+</body>
+</html>
